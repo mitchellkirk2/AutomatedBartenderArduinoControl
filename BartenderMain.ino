@@ -55,27 +55,33 @@ void home(){
   Serial.println("Home Calibrated!");
 }
 
-void testSwitch(){  
+void moveToPosition(int targetX, int targetY){
+  //Calculate the steps and direction for the x-axis
+  int stepsX = abs(targetX - currentX);
+  int dirX = (targetX > currentX) ? FORWARD : BACKWARD; //May need to change orientation
 
-  //switchL.loop(); // MUST call the loop() function first
-  switchT.loop();
-  switchB.loop();
-  switchR.loop();
+  //Calculate the steps and direction for the y-axis
+  int stepsY = abs(targetY - currentY);
+  int dirY = (targetY > currentY) ? FORWARD : BACKWARD; //May need to change orientation
 
-  if(switchR.isPressed()){
-    Serial.println("Right switch pressed");
-  }  
-    if(switchT.isPressed()){
-    Serial.println("Top switch pressed");
-  }  
-    if(switchB.isPressed()){
-    Serial.println("Bottom switch pressed");
-  }  
+  while (stepsX > 0 || stepsY > 0) {
+    if (stepsX > 0) {
+      motorX.step(1, dirX);
+      stepsX--;
+      currentX += (dirX == FORWARD) ? 1 : -1;  // Update the current x position
+    }
+    if (stepsY > 0) {
+      motorY.step(1, dirY);
+      stepsY--;
+      currentY += (dirY == FORWARD) ? 1 : -1;  // Update the current y position
+    }
+  }
+  motorX.release();
+  motorY.release();
 }
 
-void setup() {
-  Serial.begin(9600);
-  setupCalibration();
+void dispense(int amount){
+  //call the other arduino to dispense
 }
 
 void pour(String ingredientName, int amount){
@@ -135,33 +141,27 @@ void pour(String ingredientName, int amount){
   dispense(amount);
 }
 
-void moveToPostion(int targetX, int targetY){
-  //Calculate the steps and direction for the x-axis
-  int stepsX = abs(targetX - currentX);
-  int dirX = (targetX > currentX) ? FORWARD : BACKWARD; //May need to change orientation
+void testSwitch(){  
 
-  //Calculate the steps and direction for the y-axis
-  int stepsY = abs(targetY - currentY);
-  int dirY = (targetY > currentY) ? FORWARD : BACKWARD; //May need to change orientation
+  //switchL.loop(); // MUST call the loop() function first
+  switchT.loop();
+  switchB.loop();
+  switchR.loop();
 
-  while (stepsX > 0 || stepsY > 0) {
-    if (stepsX > 0) {
-      motorX.step(dirX);
-      stepsX--;
-      currentX += (dirX == FORWARD) ? 1 : -1;  // Update the current x position
-    }
-    if (stepsY > 0) {
-      motorY.step(dirY);
-      stepsY--;
-      currentY += (dirY == FORWARD) ? 1 : -1;  // Update the current y position
-    }
-  }
-  motorX.release();
-  motorY.release();
+  if(switchR.isPressed()){
+    Serial.println("Right switch pressed");
+  }  
+    if(switchT.isPressed()){
+    Serial.println("Top switch pressed");
+  }  
+    if(switchB.isPressed()){
+    Serial.println("Bottom switch pressed");
+  }  
 }
 
-void dispense(int amount){
-  //call the other arduino to dispense
+void setup() {
+  Serial.begin(9600);
+  setupCalibration();
 }
 
 void loop() {
@@ -176,7 +176,6 @@ void loop() {
       Serial.println(error.c_str());
       return;
     }
-
     if (jsonDocument.containsKey("command")) {
       String command = jsonDocument["command"].as<String>();
 
@@ -185,9 +184,9 @@ void loop() {
       } else if (command == "pour") {
         for (JsonPair kv : jsonDocument.as<JsonObject>()) {
           if (kv.key() != "command" && kv.key() != "name") {
-            std::string ingredientName = kv.key().c_str();
+            String ingredientName = kv.key().c_str();
             int amount = kv.value().as<int>();
-            pour(ingredientName, amount); // Assuming you have a pour() function that takes ingredient and amount as parameters
+            pour(ingredientName, amount); 
           }
         }
       } else {
@@ -195,7 +194,7 @@ void loop() {
       }
     } else {
       Serial.println("Missing 'command' field in JSON");
-    }
+    } 
   }
 }
 
